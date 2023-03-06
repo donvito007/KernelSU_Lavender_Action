@@ -68,5 +68,5 @@ jobs:
     - name: Upload the kernel zip
       uses: actions/upload-artifact@v3
       with:
-        name: Ravo_EAS_KernelSU_${{ env.BUILD_TIME }}
+        name: Rave_EAS_KernelSU_${{ env.BUILD_TIME }}
         path: anykernel/*
