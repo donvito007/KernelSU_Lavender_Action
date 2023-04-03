@@ -1,4 +1,4 @@
-name: Build Kernel
+name: Build Rave Kernel
 
 on:
   workflow_dispatch:
@@ -68,5 +68,5 @@ jobs:
     - name: Upload the kernel zip
       uses: actions/upload-artifact@v3
       with:
-        name: Rave_EAS_KernelSU_${{ env.BUILD_TIME }}
+        name: Rave_KernelSU_${{ env.BUILD_TIME }}
         path: anykernel/*
