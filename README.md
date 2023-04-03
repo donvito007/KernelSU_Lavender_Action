@@ -1,4 +1,4 @@
 # KernelSU_Lavender_Action
- Build Rave EAS Kernel with KernelSU
+ Build SRyzen-CAF Kernel with KernelSU
 
- Thanks to Peppe289 for his https://github.com/Peppe289/kernel_xiaomi_lavender
+ Thanks to https://github.com/TianWalkzzMiku/SRyzen-CAF/tree/caf/arch/arm64/configs
