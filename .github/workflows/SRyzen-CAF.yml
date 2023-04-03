@@ -1,0 +1,72 @@
+name: Build SRyzen-CAF Kernel
+
+on:
+  workflow_dispatch:
+
+    inputs:
+      KERNEL_SOURCE:
+        description: 'Kernel Source'
+        required: true
+        default: 'TianWalkzzMiku/SRyzen-CAF'
+      KERNEL_SOURCE_BRANCH:
+        description: 'Branch'
+        required: true
+        default: 'caf'
+      KERNEL_DEFCONFIG:
+        description: 'Defconfig'
+        required: true
+        default: 'super-lavender-qtihaptics_defconfig'
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v3
+
+    - name: Setup Configuration
+      run: |
+        echo "KERNEL_SOURCE=${{ github.event.inputs.KERNEL_SOURCE }}" >> $GITHUB_ENV
+        echo "KERNEL_SOURCE_BRANCH=${{ github.event.inputs.KERNEL_SOURCE_BRANCH }}" >> $GITHUB_ENV
+        echo "KERNEL_DEFCONFIG=${{ github.event.inputs.KERNEL_DEFCONFIG }}" >> $GITHUB_ENV
+    - name: Setup build kernel environment
+      run: |
+        echo "BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y%m%d%H%M")" >> $GITHUB_ENV
+        echo "DEVICE=$(echo ${{ env.KERNEL_DEFCONFIG }} | sed 's!vendor/!!;s/_defconfig//;s/_user//;s/-perf//')" >> $GITHUB_ENV
+        sudo apt-get update
+        sudo apt-get install git ccache automake flex lzop bison gperf build-essential zip curl zlib1g-dev g++-multilib libxml2-utils bzip2 libbz2-dev libbz2-1.0 libghc-bzlib-dev squashfs-tools pngcrush schedtool dpkg-dev liblz4-tool make optipng maven libssl-dev pwgen libswitch-perl policycoreutils minicom libxml-sax-base-perl libxml-simple-perl bc libc6-dev-i386 lib32ncurses5-dev libx11-dev lib32z-dev libgl1-mesa-dev xsltproc unzip device-tree-compiler python2 python3
+        git clone --depth=1 https://github.com/kdrag0n/proton-clang.git ${{ github.workspace }}/toolchain/clang
+    - name: Checkout Kernel Source
+      uses: actions/checkout@v3
+      with:
+        github-server-url: 'https://github.com'
+        repository: ${{ env.KERNEL_SOURCE }}
+        ref: ${{ env.KERNEL_SOURCE_BRANCH }}
+        submodules: recursive
+        path: android-kernel
+
+    - name: Setup KernelSU
+      run: |
+        cd android-kernel
+        echo "CONFIG_OVERLAY_FS=y" >> arch/arm64/configs/${{ env.KERNEL_DEFCONFIG }}
+        echo "CONFIG_MODULES=y" >> arch/arm64/configs/${{ env.KERNEL_DEFCONFIG }}
+        echo "CONFIG_IP_SET=y" >> arch/arm64/configs/${{ env.KERNEL_DEFCONFIG }}
+        echo "CONFIG_IP_SET_MAX=256" >> arch/arm64/configs/${{ env.KERNEL_DEFCONFIG }}
+        echo "CONFIG_IP_SET_HASH_NET=y" >> arch/arm64/configs/${{ env.KERNEL_DEFCONFIG }}
+        echo "CONFIG_IP_SET_LIST_SET=y" >> arch/arm64/configs/${{ env.KERNEL_DEFCONFIG }}
+        git apply ../ksu.patch
+        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+        sed -i '/^#warning("KPROBES is disabled/c\	return 0;' KernelSU/kernel/ksu.c
+    - name: Build kernel
+      run: |
+        export PATH="${{ github.workspace }}/toolchain/clang/bin:${PATH}"
+        cd android-kernel
+        make O=out ARCH=arm64 ${{ env.KERNEL_DEFCONFIG }}
+        make -j$(nproc --all) O=out ARCH=arm64 CC=clang AR=llvm-ar 	NM=llvm-nm 	OBJCOPY=llvm-objcopy 	OBJDUMP=llvm-objdump 	STRIP=llvm-strip 	CROSS_COMPILE=aarch64-linux-gnu- 	CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+        cp out/arch/arm64/boot/Image.gz-dtb ../anykernel
+    - name: Upload the kernel zip
+      uses: actions/upload-artifact@v3
+      with:
+        name: SRyzen-CAF_KernelSU_${{ env.BUILD_TIME }}
+        path: anykernel/*
