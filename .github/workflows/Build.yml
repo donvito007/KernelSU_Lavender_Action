@@ -56,7 +56,7 @@ jobs:
         echo "CONFIG_IP_SET_HASH_NET=y" >> arch/arm64/configs/${{ env.KERNEL_DEFCONFIG }}
         echo "CONFIG_IP_SET_LIST_SET=y" >> arch/arm64/configs/${{ env.KERNEL_DEFCONFIG }}
         git apply ../ksu.patch
-        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s main
         sed -i '/^#warning("KPROBES is disabled/c\	return 0;' KernelSU/kernel/ksu.c
     - name: Build kernel
       run: |
